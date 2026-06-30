@@ -1,295 +1,187 @@
-<!DOCTYPE html>
+<!doctype html>
 <html lang="en">
-<head>
-<meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <head>
+        <meta charset="UTF-8" />
+        <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+        <title>Somoy TV</title>
 
-<title>Somoy TV</title>
+        <script src="https://cdn.jsdelivr.net/npm/hls.js@1.5.17"></script>
 
-<script src="https://cdn.jsdelivr.net/npm/hls.js@1.5.17"></script>
-
-<style>
-html,
-body{
-    margin:0;
-    width:100%;
-    height:100%;
-    background:#000;
-    overflow:hidden;
-}
-
-#container{
-    position:relative;
-    width:100%;
-    height:100%;
-}
-
-video{
-    width:100%;
-    height:100%;
-    background:#000;
-    object-fit:contain;
-}
-
-#fs{
-    position:absolute;
-    right:15px;
-    bottom:15px;
-    padding:10px 16px;
-    border:none;
-    border-radius:6px;
-    background:rgba(0,0,0,.6);
-    color:#fff;
-    font-size:18px;
-    cursor:pointer;
-}
-</style>
-
-</head>
-<body>
-
-<div id="container">
-
-<video
-id="video"
-autoplay
-muted
-playsinline
-webkit-playsinline
-controls
-></video>
-
-<button id="fs">⛶</button>
-
-</div>
-
-<script>
-
-const STREAM_URL =
-"https://live.thebosstv.com:30443/dwlive/Somoy-TV/chunks.m3u8";
-
-const video=document.getElementById("video");
-
-let hls;
-let lastTime=0;
-
-function playVideo(){
-    video.play().catch(()=>{});
-}
-
-function destroyPlayer(){
-    if(hls){
-        hls.destroy();
-        hls=null;
-    }
-}
-
-function initPlayer(){
-
-    destroyPlayer();
-
-    if(video.canPlayType("application/vnd.apple.mpegurl")){
-
-        // Safari / iPhone
-
-        video.src=STREAM_URL;
-
-        video.load();
-
-        video.onloadedmetadata=()=>{
-            playVideo();
-        };
-
-    }
-
-    else if(Hls.isSupported()){
-
-        hls=new Hls({
-
-            enableWorker:true,
-
-            lowLatencyMode:false,
-
-            liveSyncDurationCount:6,
-
-            liveMaxLatencyDurationCount:12,
-
-            maxBufferLength:20,
-
-            maxMaxBufferLength:40,
-
-            backBufferLength:10,
-
-            manifestLoadingMaxRetry:10,
-
-            levelLoadingMaxRetry:10,
-
-            fragLoadingMaxRetry:15,
-
-            fragLoadingRetryDelay:1000
-
-        });
-
-        hls.loadSource(STREAM_URL);
-
-        hls.attachMedia(video);
-
-        hls.on(Hls.Events.MANIFEST_PARSED,()=>{
-            playVideo();
-        });
-
-        hls.on(Hls.Events.ERROR,(event,data)=>{
-
-            if(!data.fatal) return;
-
-            switch(data.type){
-
-                case Hls.ErrorTypes.NETWORK_ERROR:
-
-                    hls.startLoad();
-
-                    break;
-
-                case Hls.ErrorTypes.MEDIA_ERROR:
-
-                    hls.recoverMediaError();
-
-                    break;
-
-                default:
-
-                    setTimeout(initPlayer,1000);
-
+        <style>
+            html,
+            body {
+                margin: 0;
+                padding: 0;
+                width: 100%;
+                height: 100%;
+                background: #000;
+                overflow: hidden;
             }
 
-        });
-
-    }
-
-}
-
-initPlayer();
-
-video.addEventListener("waiting",()=>{
-
-    setTimeout(()=>{
-
-        if(hls){
-
-            hls.startLoad();
-
-        }
-
-        else{
-
-            video.load();
-
-        }
-
-        playVideo();
-
-    },3000);
-
-});
-
-video.addEventListener("stalled",()=>{
-
-    if(hls){
-
-        hls.startLoad();
-
-    }
-
-    else{
-
-        video.load();
-
-    }
-
-    playVideo();
-
-});
-
-video.addEventListener("error",()=>{
-
-    setTimeout(initPlayer,1000);
-
-});
-
-video.addEventListener("pause",()=>{
-
-    if(!video.ended){
-
-        setTimeout(playVideo,500);
-
-    }
-
-});
-
-document.addEventListener("click",()=>{
-
-    video.muted=false;
-
-    video.volume=1;
-
-    playVideo();
-
-},{once:true});
-
-// Detect frozen playback every 10 seconds
-
-setInterval(()=>{
-
-    if(video.paused || video.readyState<3){
-
-        playVideo();
-
-        return;
-    }
-
-    if(video.currentTime===lastTime){
-
-        console.log("Frozen. Reloading stream...");
-
-        initPlayer();
-
-    }
-
-    lastTime=video.currentTime;
-
-},10000);
-
-// Fullscreen
-
-document.getElementById("fs").onclick=()=>{
-
-    const c=document.getElementById("container");
-
-    if(!document.fullscreenElement){
-
-        if(c.requestFullscreen){
-
-            c.requestFullscreen();
-
-        }
-
-        else if(video.webkitEnterFullscreen){
-
-            video.webkitEnterFullscreen();
-
-        }
-
-    }
-
-    else{
-
-        document.exitFullscreen();
-
-    }
-
-};
-
-</script>
-
-</body>
+            #container {
+                position: relative;
+                width: 100%;
+                height: 100%;
+            }
+
+            video {
+                width: 100%;
+                height: 100%;
+                background: #000;
+                object-fit: contain;
+            }
+
+            #fs {
+                position: absolute;
+                right: 15px;
+                bottom: 15px;
+                padding: 10px 16px;
+                background: rgba(0, 0, 0, 0.6);
+                color: #fff;
+                border: none;
+                border-radius: 6px;
+                font-size: 16px;
+                cursor: pointer;
+            }
+        </style>
+    </head>
+
+    <body>
+        <div id="container">
+            <video
+                id="video"
+                autoplay
+                muted
+                playsinline
+                webkit-playsinline
+                controls
+            ></video>
+
+            <button id="fs">⛶</button>
+        </div>
+
+        <script>
+            const src =
+                "https://live.thebosstv.com:30443/dwlive/Somoy-TV/chunks.m3u8";
+
+            const video = document.getElementById("video");
+
+            video.volume = 1;
+
+            let hls;
+
+            function playVideo() {
+                video.play().catch(() => {});
+            }
+
+            function initPlayer() {
+                if (Hls.isSupported()) {
+                    hls = new Hls({
+                        enableWorker: true,
+                        lowLatencyMode: true,
+                        liveSyncDurationCount: 3,
+                        liveMaxLatencyDurationCount: 6,
+                        maxBufferLength: 15,
+                        maxMaxBufferLength: 30,
+                        backBufferLength: 5,
+                        manifestLoadingMaxRetry: 10,
+                        levelLoadingMaxRetry: 10,
+                        fragLoadingMaxRetry: 15,
+                        fragLoadingRetryDelay: 500,
+                        startLevel: -1,
+                        startFragPrefetch: true,
+                        testBandwidth: true,
+                        progressive: true,
+                        abrEwmaDefaultEstimate: 500000,
+                    });
+
+                    hls.loadSource(src);
+                    hls.attachMedia(video);
+
+                    hls.on(Hls.Events.MANIFEST_PARSED, playVideo);
+
+                    hls.on(Hls.Events.ERROR, function (event, data) {
+                        if (!data.fatal) return;
+                        switch (data.type) {
+                            case Hls.ErrorTypes.NETWORK_ERROR:
+                                setTimeout(() => {
+                                    hls.startLoad();
+                                    playVideo();
+                                }, 2000);
+                                break;
+                            case Hls.ErrorTypes.MEDIA_ERROR:
+                                hls.recoverMediaError();
+                                break;
+                            default:
+                                hls.destroy();
+                                setTimeout(initPlayer, 3000);
+                        }
+                    });
+
+                    hls.on(Hls.Events.BUFFER_STALLED, function () {
+                        if (hls) {
+                            hls.startLoad();
+                            playVideo();
+                        }
+                    });
+                } else if (video.canPlayType("application/vnd.apple.mpegurl")) {
+                    video.src = src;
+                    video.addEventListener("loadedmetadata", playVideo);
+                }
+            }
+
+            initPlayer();
+
+            video.addEventListener("waiting", function () {
+                if (hls) {
+                    hls.startLoad();
+                    playVideo();
+                }
+            });
+
+            video.addEventListener("stalled", function () {
+                if (hls) {
+                    hls.startLoad();
+                }
+                playVideo();
+            });
+
+            video.addEventListener("pause", function () {
+                if (!video.ended) {
+                    setTimeout(playVideo, 500);
+                }
+            });
+
+            // First user tap enables sound
+            document.addEventListener(
+                "click",
+                function () {
+                    video.muted = false;
+
+                    video.volume = 1;
+
+                    playVideo();
+                },
+                { once: true },
+            );
+
+            const fs = document.getElementById("fs");
+
+            fs.onclick = function () {
+                if (!document.fullscreenElement) {
+                    if (
+                        document.getElementById("container").requestFullscreen
+                    ) {
+                        document
+                            .getElementById("container")
+                            .requestFullscreen();
+                    } else if (video.webkitEnterFullscreen) {
+                        video.webkitEnterFullscreen();
+                    }
+                } else {
+                    document.exitFullscreen();
+                }
+            };
+        </script>
+    </body>
 </html>
