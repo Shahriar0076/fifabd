@@ -1,192 +1,295 @@
-<!doctype html>
+<!DOCTYPE html>
 <html lang="en">
-    <head>
-        <meta charset="UTF-8" />
-        <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-        <title>Somoy TV</title>
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
 
-        <script src="https://cdn.jsdelivr.net/npm/hls.js@1.5.17"></script>
+<title>Somoy TV</title>
 
-        <style>
-            html,
-            body {
-                margin: 0;
-                padding: 0;
-                width: 100%;
-                height: 100%;
-                background: #000;
-                overflow: hidden;
-            }
+<script src="https://cdn.jsdelivr.net/npm/hls.js@1.5.17"></script>
 
-            #container {
-                position: relative;
-                width: 100%;
-                height: 100%;
-            }
+<style>
+html,
+body{
+    margin:0;
+    width:100%;
+    height:100%;
+    background:#000;
+    overflow:hidden;
+}
 
-            video {
-                width: 100%;
-                height: 100%;
-                background: #000;
-                object-fit: contain;
-            }
+#container{
+    position:relative;
+    width:100%;
+    height:100%;
+}
 
-            #fs {
-                position: absolute;
-                right: 15px;
-                bottom: 15px;
-                padding: 10px 16px;
-                background: rgba(0, 0, 0, 0.6);
-                color: #fff;
-                border: none;
-                border-radius: 6px;
-                font-size: 16px;
-                cursor: pointer;
-            }
-        </style>
-    </head>
+video{
+    width:100%;
+    height:100%;
+    background:#000;
+    object-fit:contain;
+}
 
-    <body>
-        <div id="container">
-            <video
-                id="video"
-                autoplay
-                muted
-                playsinline
-                webkit-playsinline
-                controls
-            ></video>
+#fs{
+    position:absolute;
+    right:15px;
+    bottom:15px;
+    padding:10px 16px;
+    border:none;
+    border-radius:6px;
+    background:rgba(0,0,0,.6);
+    color:#fff;
+    font-size:18px;
+    cursor:pointer;
+}
+</style>
 
-            <button id="fs">⛶</button>
-        </div>
+</head>
+<body>
 
-        <script>
-            const src =
-                "https://live.thebosstv.com:30443/dwlive/Somoy-TV/chunks.m3u8";
+<div id="container">
 
-            const video = document.getElementById("video");
+<video
+id="video"
+autoplay
+muted
+playsinline
+webkit-playsinline
+controls
+></video>
 
-            video.volume = 1;
+<button id="fs">⛶</button>
 
-            let hls;
+</div>
 
-            function playVideo() {
-                video.play().catch(() => {});
-            }
+<script>
 
-            if (video.canPlayType("application/vnd.apple.mpegurl")) {
-                video.src = src;
+const STREAM_URL =
+"https://live.thebosstv.com:30443/dwlive/Somoy-TV/chunks.m3u8";
 
-                video.addEventListener("loadedmetadata", playVideo);
-            } else if (Hls.isSupported()) {
-                hls = new Hls({
-                    enableWorker: true,
+const video=document.getElementById("video");
 
-                    lowLatencyMode: false,
+let hls;
+let lastTime=0;
 
-                    liveSyncDurationCount: 5,
+function playVideo(){
+    video.play().catch(()=>{});
+}
 
-                    liveMaxLatencyDurationCount: 10,
+function destroyPlayer(){
+    if(hls){
+        hls.destroy();
+        hls=null;
+    }
+}
 
-                    maxBufferLength: 30,
+function initPlayer(){
 
-                    maxMaxBufferLength: 60,
+    destroyPlayer();
 
-                    backBufferLength: 30,
+    if(video.canPlayType("application/vnd.apple.mpegurl")){
 
-                    manifestLoadingMaxRetry: 8,
+        // Safari / iPhone
 
-                    levelLoadingMaxRetry: 8,
+        video.src=STREAM_URL;
 
-                    fragLoadingMaxRetry: 12,
+        video.load();
 
-                    fragLoadingRetryDelay: 1000,
-                });
+        video.onloadedmetadata=()=>{
+            playVideo();
+        };
 
-                hls.loadSource(src);
+    }
 
-                hls.attachMedia(video);
+    else if(Hls.isSupported()){
 
-                hls.on(Hls.Events.MANIFEST_PARSED, function () {
-                    playVideo();
-                });
+        hls=new Hls({
 
-                hls.on(Hls.Events.ERROR, function (event, data) {
-                    if (!data.fatal) return;
+            enableWorker:true,
 
-                    switch (data.type) {
-                        case Hls.ErrorTypes.NETWORK_ERROR:
-                            hls.startLoad();
+            lowLatencyMode:false,
 
-                            break;
+            liveSyncDurationCount:6,
 
-                        case Hls.ErrorTypes.MEDIA_ERROR:
-                            hls.recoverMediaError();
+            liveMaxLatencyDurationCount:12,
 
-                            break;
+            maxBufferLength:20,
 
-                        default:
-                            hls.destroy();
+            maxMaxBufferLength:40,
 
-                            setTimeout(init, 1000);
-                    }
-                });
-            }
+            backBufferLength:10,
 
-            video.addEventListener("waiting", function () {
-                if (hls) {
-                    setTimeout(() => {
-                        hls.startLoad();
+            manifestLoadingMaxRetry:10,
 
-                        playVideo();
-                    }, 2000);
-                }
-            });
+            levelLoadingMaxRetry:10,
 
-            video.addEventListener("stalled", function () {
-                if (hls) {
+            fragLoadingMaxRetry:15,
+
+            fragLoadingRetryDelay:1000
+
+        });
+
+        hls.loadSource(STREAM_URL);
+
+        hls.attachMedia(video);
+
+        hls.on(Hls.Events.MANIFEST_PARSED,()=>{
+            playVideo();
+        });
+
+        hls.on(Hls.Events.ERROR,(event,data)=>{
+
+            if(!data.fatal) return;
+
+            switch(data.type){
+
+                case Hls.ErrorTypes.NETWORK_ERROR:
+
                     hls.startLoad();
-                }
 
-                playVideo();
-            });
+                    break;
 
-            video.addEventListener("pause", function () {
-                if (!video.ended) {
-                    setTimeout(playVideo, 300);
-                }
-            });
+                case Hls.ErrorTypes.MEDIA_ERROR:
 
-            // First user tap enables sound
-            document.addEventListener(
-                "click",
-                function () {
-                    video.muted = false;
+                    hls.recoverMediaError();
 
-                    video.volume = 1;
+                    break;
 
-                    playVideo();
-                },
-                { once: true },
-            );
+                default:
 
-            const fs = document.getElementById("fs");
+                    setTimeout(initPlayer,1000);
 
-            fs.onclick = function () {
-                if (!document.fullscreenElement) {
-                    if (
-                        document.getElementById("container").requestFullscreen
-                    ) {
-                        document
-                            .getElementById("container")
-                            .requestFullscreen();
-                    } else if (video.webkitEnterFullscreen) {
-                        video.webkitEnterFullscreen();
-                    }
-                } else {
-                    document.exitFullscreen();
-                }
-            };
-        </script>
-    </body>
+            }
+
+        });
+
+    }
+
+}
+
+initPlayer();
+
+video.addEventListener("waiting",()=>{
+
+    setTimeout(()=>{
+
+        if(hls){
+
+            hls.startLoad();
+
+        }
+
+        else{
+
+            video.load();
+
+        }
+
+        playVideo();
+
+    },3000);
+
+});
+
+video.addEventListener("stalled",()=>{
+
+    if(hls){
+
+        hls.startLoad();
+
+    }
+
+    else{
+
+        video.load();
+
+    }
+
+    playVideo();
+
+});
+
+video.addEventListener("error",()=>{
+
+    setTimeout(initPlayer,1000);
+
+});
+
+video.addEventListener("pause",()=>{
+
+    if(!video.ended){
+
+        setTimeout(playVideo,500);
+
+    }
+
+});
+
+document.addEventListener("click",()=>{
+
+    video.muted=false;
+
+    video.volume=1;
+
+    playVideo();
+
+},{once:true});
+
+// Detect frozen playback every 10 seconds
+
+setInterval(()=>{
+
+    if(video.paused || video.readyState<3){
+
+        playVideo();
+
+        return;
+    }
+
+    if(video.currentTime===lastTime){
+
+        console.log("Frozen. Reloading stream...");
+
+        initPlayer();
+
+    }
+
+    lastTime=video.currentTime;
+
+},10000);
+
+// Fullscreen
+
+document.getElementById("fs").onclick=()=>{
+
+    const c=document.getElementById("container");
+
+    if(!document.fullscreenElement){
+
+        if(c.requestFullscreen){
+
+            c.requestFullscreen();
+
+        }
+
+        else if(video.webkitEnterFullscreen){
+
+            video.webkitEnterFullscreen();
+
+        }
+
+    }
+
+    else{
+
+        document.exitFullscreen();
+
+    }
+
+};
+
+</script>
+
+</body>
 </html>
