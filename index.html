@@ -1,208 +1,461 @@
-<!doctype html>
-<html lang="en">
-    <head>
-        <meta charset="UTF-8" />
-        <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-        <title>Somoy TV</title>
+<!DOCTYPE html>
+<html lang="en" class="scroll-smooth">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>FIFA World Cup — Live</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <script src="https://cdn.jsdelivr.net/npm/hls.js@latest"></script>
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet" />
+  <style>
+    :root { --brand: #e50914; }
+    body { font-family: 'Inter', system-ui, sans-serif; }
+    .sr-only-radio {
+      position: absolute; width: 1px; height: 1px;
+      padding: 0; margin: -1px; overflow: hidden;
+      clip: rect(0,0,0,0); white-space: nowrap; border: 0;
+    }
+    .channel-screen { display: none; }
+    #ch7:checked ~ .content .label-7 {
+      background-color: rgba(255,255,255,0.07);
+      border-left-color: var(--brand);
+    }
+    #ch7:checked ~ .content .label-7 .ch-name { color: #fff; }
+    #ch7:checked ~ .content .label-7 .ch-icon {
+      box-shadow: 0 0 0 2px rgba(229,9,20,.55);
+      transform: scale(1.04);
+    }
+    #ch7:checked ~ .content .screen-7 {
+      display: flex; flex-direction: column; gap: 1.25rem;
+    }
+    .sidebar { transform: translateX(-100%); transition: transform .3s ease; }
+    .menu-backdrop { opacity: 0; pointer-events: none; transition: opacity .3s ease; }
+    @media (min-width: 768px) {
+      .sidebar { transform: translateX(0); }
+    }
+    @media (max-width: 767px) {
+      #menu-toggle:checked ~ .menu-backdrop { opacity: 1; pointer-events: auto; }
+      #menu-toggle:checked ~ .content .sidebar { transform: translateX(0); }
+    }
+    @keyframes pulse-dot { 0%,100% { opacity: 1; } 50% { opacity: .35; } }
+    .live-dot { animation: pulse-dot 1.6s ease-in-out infinite; }
+    @keyframes spin { to { transform: rotate(360deg); } }
+    .loader-spin { animation: spin .8s linear infinite; }
+    .loading-overlay { opacity: 0; pointer-events: none; transition: opacity .3s ease; }
+    .loading-overlay.visible { opacity: 1; }
+    .nice-scroll::-webkit-scrollbar { width: 6px; }
+    .nice-scroll::-webkit-scrollbar-thumb { background: rgba(255,255,255,.12); border-radius: 999px; }
+    .nice-scroll::-webkit-scrollbar-track { background: transparent; }
+  </style>
+</head>
 
-        <script src="https://cdn.jsdelivr.net/npm/hls.js@1.5.17"></script>
+<body class="bg-[#0a0a0f] text-gray-300 antialiased">
+  <div class="layout min-h-screen">
 
-        <style>
-            html,
-            body {
-                margin: 0;
-                padding: 0;
-                width: 100%;
-                height: 100%;
-                background: #000;
-                overflow: hidden;
-            }
+    <input type="checkbox" id="menu-toggle" class="sr-only-radio" />
+    <input type="radio" name="channel" id="ch7" class="sr-only-radio" checked />
 
-            #container {
-                position: relative;
-                width: 100%;
-                height: 100%;
-            }
+    <label for="menu-toggle" class="menu-backdrop md:hidden fixed inset-0 z-30 bg-black/60 backdrop-blur-sm" aria-label="Close menu"></label>
 
-            video {
-                width: 100%;
-                height: 100%;
-                background: #000;
-                object-fit: contain;
-            }
-
-            #fs {
-                position: absolute;
-                right: 15px;
-                bottom: 15px;
-                padding: 10px 16px;
-                background: rgba(0, 0, 0, 0.6);
-                color: #fff;
-                border: none;
-                border-radius: 6px;
-                font-size: 16px;
-                cursor: pointer;
-            }
-        </style>
-    </head>
-
-    <body>
-        <div id="container">
-            <video
-                id="video"
-                autoplay
-                muted
-                playsinline
-                webkit-playsinline
-                controls
-            ></video>
-
-            <button id="fs">⛶</button>
+    <!-- Header -->
+    <header class="sticky top-0 z-40 bg-[#0a0a0f]/80 backdrop-blur-xl border-b border-white/5">
+      <div class="flex items-center gap-3 px-4 sm:px-6 h-16">
+        <label for="menu-toggle" class="md:hidden p-2 -ml-2 rounded-lg text-gray-300 hover:bg-white/10 hover:text-white transition cursor-pointer" aria-label="Open menu">
+          <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" class="w-6 h-6">
+            <path stroke-linecap="round" stroke-linejoin="round" d="M3.75 6.75h16.5M3.75 12h16.5M3.75 17.25h16.5" />
+          </svg>
+        </label>
+        <a href="#" class="flex items-center gap-2.5 shrink-0">
+          <span class="grid place-items-center w-9 h-9 rounded-xl text-white shadow-lg shadow-red-600/30" style="background: var(--brand)">
+            <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor" class="w-5 h-5"><path d="M8 5v14l11-7z"/></svg>
+          </span>
+          <span class="text-xl font-extrabold tracking-tight text-white hidden sm:block">Somoy<span style="color: var(--brand)">TV</span></span>
+        </a>
+        <div class="flex-1 max-w-xl ml-auto md:ml-6">
+          <div class="relative">
+            <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" class="w-5 h-5 absolute left-3.5 top-1/2 -translate-y-1/2 text-gray-500 pointer-events-none">
+              <path stroke-linecap="round" stroke-linejoin="round" d="m21 21-4.3-4.3M11 19a8 8 0 1 0 0-16 8 8 0 0 0 0 16Z" />
+            </svg>
+            <input id="search-input" type="text" placeholder="Search…" class="w-full bg-white/5 border border-white/10 rounded-full pl-11 pr-4 py-2.5 text-sm text-gray-200 placeholder:text-gray-500 focus:outline-none focus:ring-2 focus:ring-red-600/60 focus:border-transparent transition" />
+          </div>
         </div>
+        <div class="hidden sm:flex items-center gap-2 px-3 py-1.5 rounded-full bg-red-600/15 border border-red-600/30">
+          <span class="live-dot w-2 h-2 rounded-full bg-red-500"></span>
+          <span class="text-xs font-semibold tracking-wide text-red-400">LIVE</span>
+        </div>
+      </div>
+    </header>
 
-        <script>
-            const src = "https://live.thebosstv.com:30443/dwlive/Somoy-TV/chunks.m3u8";
-            const video = document.getElementById("video");
-            video.volume = 1;
+    <div class="content flex">
+      <aside class="sidebar fixed md:sticky top-16 md:top-16 left-0 z-40 md:z-auto h-[calc(100vh-4rem)] w-72 shrink-0 bg-[#0d0d13] md:bg-transparent border-r border-white/5 flex flex-col">
+        <div class="flex items-center justify-between px-5 pt-5 pb-3">
+          <h2 class="text-[11px] font-semibold tracking-[0.18em] text-gray-500 uppercase">Channels</h2>
+          <label for="menu-toggle" class="md:hidden p-1.5 rounded-lg text-gray-400 hover:bg-white/10 hover:text-white transition cursor-pointer" aria-label="Close menu">
+            <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" class="w-5 h-5"><path stroke-linecap="round" stroke-linejoin="round" d="M6 18 18 6M6 6l12 12" /></svg>
+          </label>
+        </div>
+        <nav class="flex-1 overflow-y-auto nice-scroll px-3 pb-6 space-y-1.5">
+          <label for="ch7" class="label-7 channel-card group flex items-center gap-3 p-3 rounded-xl border-l-4 border-transparent cursor-pointer hover:bg-white/5 transition-all">
+            <span class="ch-icon grid place-items-center w-11 h-11 rounded-xl text-xl bg-gradient-to-br from-red-600 to-rose-700 transition-transform shadow-md">📡</span>
+            <span class="min-w-0 flex-1">
+              <span class="ch-name block font-medium text-gray-200 truncate">Somoy TV</span>
+              <span class="block text-xs text-gray-500 truncate">FIFA</span>
+            </span>
+            <span class="flex items-center gap-1 text-[10px] font-semibold text-red-400 shrink-0">
+              <span class="live-dot w-1.5 h-1.5 rounded-full bg-red-500"></span>LIVE
+            </span>
+          </label>
+        </nav>
+      </aside>
 
-            let hls;
-            let failCount = 0;
+      <main class="flex-1 min-w-0 px-4 sm:px-6 lg:px-8 py-6 space-y-8">
+        <section class="channel-screen screen-7">
+          <div id="somoy-container" class="relative aspect-video w-full rounded-2xl overflow-hidden ring-1 ring-white/10 shadow-2xl shadow-black/50">
+            <video id="somoy-player" class="absolute inset-0 w-full h-full bg-black" controls autoplay muted playsinline></video>
+            <div id="somoy-loader" class="loading-overlay absolute inset-0 flex items-center justify-center bg-black/50 z-20">
+              <svg class="loader-spin w-12 h-12 text-red-500" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+                <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
+                <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z"></path>
+              </svg>
+            </div>
+            <div class="absolute top-4 left-4 flex items-center gap-2 px-2.5 py-1 rounded-md bg-red-600 text-white text-xs font-bold tracking-wide z-10"><span class="live-dot w-1.5 h-1.5 rounded-full bg-white"></span>LIVE</div>
+            <button id="somoy-fs-btn" class="absolute bottom-4 right-4 z-10 grid place-items-center w-10 h-10 rounded-lg bg-black/60 backdrop-blur text-white hover:bg-red-600 transition-colors" title="Fullscreen">
+              <svg id="somoy-fs-icon-expand" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" class="w-5 h-5"><path stroke-linecap="round" stroke-linejoin="round" d="M3.75 3.75v4.5m0-4.5h4.5m-4.5 0L9 8.25M3.75 20.25v-4.5m0 4.5h4.5m-4.5 0L9 15.75M20.25 3.75h-4.5m4.5 0v4.5m0-4.5L15 8.25M20.25 20.25h-4.5m4.5 0v-4.5m0 4.5L15 15.75" /></svg>
+              <svg id="somoy-fs-icon-shrink" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" class="w-5 h-5 hidden"><path stroke-linecap="round" stroke-linejoin="round" d="M9 9V4.5M9 9H4.5M9 9 3.75 3.75M9 15v4.5M9 15H4.5M9 15l-5.25 5.25M15 9h4.5M15 9V4.5M15 9l5.25-5.25M15 15h4.5M15 15v4.5m0-4.5 5.25 5.25" /></svg>
+            </button>
+          </div>
+          <div class="flex flex-col sm:flex-row sm:items-start gap-4">
+            <div class="flex-1">
+              <h2 class="text-lg font-bold text-white">FIFA World Cup</h2>
+              <p class="text-sm text-gray-400 mt-2 leading-relaxed max-w-2xl">Live coverage of the FIFA World Cup — the biggest tournament on earth. Watch every goal, every tackle, every moment.</p>
+              <div class="flex flex-wrap items-center gap-2 mt-4 text-xs">
+                <span class="px-2.5 py-1 rounded-md bg-white/10 text-gray-300">Football</span>
+                <span class="px-2.5 py-1 rounded-md bg-white/10 text-gray-300">World Cup</span>
+                <span class="px-2.5 py-1 rounded-md bg-white/10 text-gray-300">4K</span>
+              </div>
+            </div>
 
-            function playVideo() {
-                video.play().catch(function () {});
+          </div>
+        </section>
+      </main>
+    </div>
+  </div>
+
+</body>
+<script>
+  (function() {
+    var STREAM_URL = 'https://live.thebosstv.com:30443/dwlive/Somoy-TV/chunks.m3u8';
+    var video = document.getElementById('somoy-player');
+    if (!video) return;
+
+    var loader = document.getElementById('somoy-loader');
+
+    var hls = null;
+    var fatalCount = 0;
+    var userPaused = false;
+    var unmuted = false;
+    var recovering = false;
+    var destroyed = false;
+
+    var HLS_CONFIG = {
+      autoStartLoad: true,
+      startLevel: -1,
+      debug: false,
+      manifestLoadingTimeOut: 15000,
+      manifestLoadingMaxRetry: 6,
+      manifestLoadingRetryDelay: 1000,
+      levelLoadingTimeOut: 15000,
+      levelLoadingMaxRetry: 6,
+      levelLoadingRetryDelay: 1000,
+      fragLoadingTimeOut: 30000,
+      fragLoadingMaxRetry: 10,
+      fragLoadingRetryDelay: 1000,
+      liveSyncDurationCount: 3,
+      liveMaxLatencyDurationCount: 10,
+      liveDurationInfinity: true,
+      liveBackBufferLength: 60,
+      backBufferLength: 90,
+      maxBufferLength: 30,
+      maxMaxBufferLength: 600,
+      maxBufferSize: 60 * 1000 * 1000,
+      maxBufferHole: 0.5,
+      lowBufferWatchdogPeriod: 0.5,
+      highBufferWatchdogPeriod: 3,
+      nudgeOffset: 0.1,
+      nudgeMaxRetry: 6,
+      maxFragLookUpTolerance: 0.25,
+      enableWorker: true,
+      enableCEA708Captions: false,
+      stretchShortVideoTrack: false,
+      forceKeyFrameOnDiscontinuity: true,
+      abrEwmaFastLive: 3,
+      abrEwmaSlowLive: 9,
+      abrBandWidthFactor: 0.95,
+      abrBandWidthUpFactor: 1.1,
+      abrMaxWithRealBitrate: true,
+      maxStarvationDelay: 4,
+      maxLoadingDelay: 4
+    };
+
+    function destroyHls() {
+      if (hls) {
+        try { hls.destroy(); } catch (e) {}
+        hls = null;
+      }
+    }
+
+    function createPlayer() {
+      destroyHls();
+      destroyed = false;
+      fatalCount = 0;
+      recovering = false;
+      video.src = '';
+      video.removeAttribute('src');
+
+      if (Hls.isSupported()) {
+        hls = new Hls(HLS_CONFIG);
+
+        hls.on(Hls.Events.ERROR, function(event, data) {
+          if (!data || destroyed) return;
+
+          if (data.fatal) {
+            fatalCount++;
+            console.warn('[HLS] Fatal error (' + data.type + '), count=' + fatalCount, data.details);
+
+            if (fatalCount >= 5) {
+              console.warn('[HLS] Max fatal errors reached, rebuilding player...');
+              destroyHls();
+              destroyed = true;
+              setTimeout(createPlayer, 2000);
+              return;
             }
 
-            function rebuild() {
-                if (hls) hls.destroy();
-                hls = null;
-                setTimeout(initPlayer, 500);
+            switch (data.type) {
+              case Hls.ErrorTypes.NETWORK_ERROR:
+                console.warn('[HLS] Attempting network recovery via startLoad()...');
+                setTimeout(function() {
+                  if (hls && !destroyed) { hls.startLoad(); }
+                }, 1500);
+                break;
+              case Hls.ErrorTypes.MEDIA_ERROR:
+                console.warn('[HLS] Attempting media recovery via recoverMediaError()...');
+                try { hls.recoverMediaError(); } catch (e) {}
+                break;
+              default:
+                console.warn('[HLS] Unrecoverable error, rebuilding player...');
+                destroyHls();
+                destroyed = true;
+                setTimeout(createPlayer, 2000);
+                break;
             }
-
-            function initPlayer() {
-                if (Hls.isSupported()) {
-                    hls = new Hls({
-                        enableWorker: false,
-                        lowLatencyMode: false,
-                        liveSyncDurationCount: 6,
-                        liveMaxLatencyDurationCount: 12,
-                        maxBufferLength: 60,
-                        maxMaxBufferLength: 120,
-                        backBufferLength: 5,
-                        manifestLoadingMaxRetry: 99,
-                        levelLoadingMaxRetry: 99,
-                        fragLoadingMaxRetry: 99,
-                        fragLoadingRetryDelay: 1000,
-                        manifestLoadingRetryDelay: 1000,
-                        levelLoadingRetryDelay: 1000,
-                        startLevel: -1,
-                        startFragPrefetch: true,
-                        testBandwidth: true,
-                        nudgeOffset: 0.5,
-                        nudgeMaxRetry: 10,
-                    });
-
-                    hls.loadSource(src);
-                    hls.attachMedia(video);
-
-                    hls.on(Hls.Events.MANIFEST_PARSED, function () {
-                        failCount = 0;
-                        playVideo();
-                    });
-
-                    hls.on(Hls.Events.ERROR, function (event, data) {
-                        if (data.fatal) {
-                            failCount++;
-                            if (failCount > 3) {
-                                rebuild();
-                                return;
-                            }
-                            switch (data.type) {
-                                case Hls.ErrorTypes.NETWORK_ERROR:
-                                    hls.startLoad();
-                                    break;
-                                case Hls.ErrorTypes.MEDIA_ERROR:
-                                    hls.recoverMediaError();
-                                    break;
-                                default:
-                                    rebuild();
-                            }
-                        }
-                    });
-                } else if (video.canPlayType("application/vnd.apple.mpegurl")) {
-                    video.src = src;
-                    video.addEventListener("loadedmetadata", playVideo);
-                }
+          } else {
+            switch (data.type) {
+              case Hls.ErrorTypes.NETWORK_ERROR:
+                console.warn('[HLS] Non-fatal network error, retrying...', data.details);
+                recovering = true;
+                setTimeout(function() {
+                  if (hls && !destroyed) { recovering = false; hls.startLoad(); }
+                }, 1000);
+                break;
+              case Hls.ErrorTypes.MEDIA_ERROR:
+                console.warn('[HLS] Non-fatal media error, recovering...', data.details);
+                try { hls.recoverMediaError(); } catch (e) {}
+                break;
             }
+          }
+        });
 
-            initPlayer();
+        hls.on(Hls.Events.MANIFEST_PARSED, function(event, data) {
+          if (destroyed) return;
+          fatalCount = 0;
+          console.log('[HLS] Manifest loaded, levels=' + data.levels.length);
+          attemptPlay();
+        });
 
-            video.addEventListener("waiting", function () {
-                if (hls) hls.startLoad();
-                setTimeout(playVideo, 500);
-            });
+        hls.on(Hls.Events.FRAG_BUFFERED, function() { fatalCount = 0; });
+        hls.on(Hls.Events.LEVEL_LOADED, function() { fatalCount = Math.max(0, fatalCount - 1); });
 
-            video.addEventListener("stalled", function () {
-                if (hls) hls.startLoad();
-                setTimeout(playVideo, 500);
-            });
+        hls.loadSource(STREAM_URL);
+        hls.attachMedia(video);
+      } else if (video.canPlayType('application/vnd.apple.mpegurl')) {
+        console.log('[HLS] Using native HLS (Safari/iOS)');
+        video.src = STREAM_URL;
+        video.addEventListener('loadedmetadata', function() {
+          if (destroyed) return;
+          fatalCount = 0;
+          attemptPlay();
+        }, { once: true });
+      }
+    }
 
-            video.addEventListener("pause", function () {
-                if (!video.ended) {
-                    setTimeout(playVideo, 300);
-                }
-            });
+    function attemptPlay() {
+      if (!video || destroyed) return;
+      var p = video.play();
+      if (p && p.catch) { p.catch(function(err) { console.warn('[HLS] Autoplay blocked:', err.name); }); }
+    }
 
-            video.addEventListener("error", function () {
-                rebuild();
-            });
+    function safePlay() {
+      if (!video || destroyed) return;
+      if (video.paused && !userPaused) {
+        var p = video.play();
+        if (p && p.catch) p.catch(function() {});
+      }
+    }
 
-            setInterval(function () {
-                if (!video.paused && !video.ended && video.readyState > 0) {
-                    if (video.buffered.length > 0) {
-                        var bufEnd = video.buffered.end(video.buffered.length - 1);
-                        if (bufEnd - video.currentTime < 0.5) {
-                            if (hls) hls.startLoad();
-                        }
-                    }
-                }
-            }, 5000);
+    function resumeLoad() {
+      if (hls && !destroyed) {
+        recovering = true;
+        hls.startLoad();
+        setTimeout(function() { recovering = false; }, 1000);
+      }
+    }
 
-            document.addEventListener("click", function () {
-                video.muted = false;
-                video.volume = 1;
-                playVideo();
-            }, { once: true });
+    video.addEventListener('waiting', function() {
+      if (destroyed) return;
+      console.log('[Video] Buffering (waiting)...');
+      if (loader) loader.classList.add('visible');
+      if (!recovering) resumeLoad();
+    });
 
-            // First user tap enables sound
-            document.addEventListener(
-                "click",
-                function () {
-                    video.muted = false;
+    video.addEventListener('stalled', function() {
+      if (destroyed) return;
+      console.warn('[Video] Stalled, recovering...');
+      resumeLoad();
+      safePlay();
+    });
 
-                    video.volume = 1;
+    video.addEventListener('pause', function() {
+      if (destroyed) return;
+      if (!video.ended && video.readyState >= 3 && !recovering) {
+        userPaused = true;
+        return;
+      }
+      if (!userPaused && !video.ended && video.readyState >= 2 && !recovering) {
+        setTimeout(function() {
+          if (video.paused && !userPaused && !destroyed) {
+            console.warn('[Video] Unexpected pause, resuming...');
+            safePlay();
+          }
+        }, 500);
+      }
+    });
 
-                    playVideo();
-                },
-                { once: true },
-            );
+    video.addEventListener('play', function() {
+      if (destroyed) return;
+      userPaused = false;
+      if (loader) loader.classList.add('visible');
+      if (hls && !destroyed) {
+        hls.startLoad();
+      }
+      if (video.seekable.length > 0) {
+        video.currentTime = video.seekable.end(0);
+      }
+    });
 
-            const fs = document.getElementById("fs");
+    video.addEventListener('playing', function() {
+      userPaused = false;
+      fatalCount = 0;
+      recovering = false;
+      if (loader) loader.classList.remove('visible');
+    });
 
-            fs.onclick = function () {
-                if (!document.fullscreenElement) {
-                    if (
-                        document.getElementById("container").requestFullscreen
-                    ) {
-                        document
-                            .getElementById("container")
-                            .requestFullscreen();
-                    } else if (video.webkitEnterFullscreen) {
-                        video.webkitEnterFullscreen();
-                    }
-                } else {
-                    document.exitFullscreen();
-                }
-            };
-        </script>
-    </body>
+    video.addEventListener('ended', function() {
+      if (destroyed) return;
+      console.warn('[Video] Ended unexpectedly, rebuilding...');
+      destroyHls();
+      destroyed = true;
+      setTimeout(createPlayer, 1500);
+    });
+
+    video.addEventListener('error', function() {
+      if (destroyed) return;
+      var err = video.error;
+      if (err) {
+        console.warn('[Video] Media element error: code=' + err.code + ' msg=' + err.message);
+        if (loader) loader.classList.remove('visible');
+        if (err.code === MediaError.MEDIA_ERR_NETWORK || err.code === MediaError.MEDIA_ERR_SRC_NOT_SUPPORTED) {
+          destroyHls();
+          destroyed = true;
+          setTimeout(createPlayer, 2000);
+        }
+      }
+    });
+
+    var bufferInterval = setInterval(function() {
+      if (destroyed || !video || video.paused) return;
+      if (video.buffered.length > 0) {
+        var end = video.buffered.end(video.buffered.length - 1);
+        var current = video.currentTime;
+        var ahead = end - current;
+        if (ahead < 4) {
+          console.warn('[Buffer] Low (' + ahead.toFixed(1) + 's), reloading...');
+          if (hls && !destroyed) hls.startLoad();
+        }
+      }
+    }, 3000);
+
+    function onFirstInteraction() {
+      if (!unmuted && video) {
+        unmuted = true;
+        video.muted = false;
+        video.volume = 1;
+        document.removeEventListener('click', onFirstInteraction);
+        document.removeEventListener('touchstart', onFirstInteraction);
+      }
+    }
+    document.addEventListener('click', onFirstInteraction);
+    document.addEventListener('touchstart', onFirstInteraction);
+
+    var fsBtn = document.getElementById('somoy-fs-btn');
+    var fsIconExpand = document.getElementById('somoy-fs-icon-expand');
+    var fsIconShrink = document.getElementById('somoy-fs-icon-shrink');
+    var container = document.getElementById('somoy-container');
+
+    function updateFsIcons() {
+      var isFs = !!(document.fullscreenElement || document.webkitFullscreenElement);
+      if (fsIconExpand) fsIconExpand.classList.toggle('hidden', isFs);
+      if (fsIconShrink) fsIconShrink.classList.toggle('hidden', !isFs);
+    }
+
+    if (fsBtn) {
+      fsBtn.addEventListener('click', function(e) {
+        e.stopPropagation();
+        var isFs = !!(document.fullscreenElement || document.webkitFullscreenElement);
+        if (isFs) {
+          if (document.exitFullscreen) { document.exitFullscreen(); }
+          else if (document.webkitExitFullscreen) { document.webkitExitFullscreen(); }
+        } else {
+          var el = container || video;
+          if (el.requestFullscreen) { el.requestFullscreen().catch(function() {}); }
+          else if (el.webkitRequestFullscreen) { el.webkitRequestFullscreen(); }
+          if (video.webkitEnterFullscreen) { video.webkitEnterFullscreen(); }
+        }
+      });
+    }
+
+    document.addEventListener('fullscreenchange', updateFsIcons);
+    document.addEventListener('webkitfullscreenchange', updateFsIcons);
+
+    createPlayer();
+  })();
+</script>
+
+<script>
+  (function initSearch() {
+    var input = document.getElementById('search-input');
+    if (!input) return;
+    input.addEventListener('input', function () {
+      var query = this.value.toLowerCase().trim();
+      var cards = document.querySelectorAll('.channel-card');
+      cards.forEach(function (card) {
+        var name = card.querySelector('.ch-name').textContent.toLowerCase();
+        var category = card.querySelector('.text-xs.text-gray-500').textContent.toLowerCase();
+        var match = !query || name.includes(query) || category.includes(query);
+        card.style.display = match ? '' : 'none';
+      });
+    });
+  })();
+</script>
 </html>
